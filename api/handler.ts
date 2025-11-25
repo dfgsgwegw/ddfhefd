@@ -119,9 +119,10 @@ export default async (req: VercelRequest, res: VercelResponse) => {
     });
   }
 
-  return new Promise((resolve) => {
-    app(req as any, res as any, () => {
-      resolve(undefined);
-    });
+  // Resolve when the response finishes
+  return new Promise<void>((resolve) => {
+    res.on('finish', () => resolve());
+    res.on('close', () => resolve());
+    app(req as any, res as any);
   });
 };
