@@ -11,6 +11,7 @@ import Products from "@/pages/Products";
 import Company from "@/pages/Company";
 import Resources from "@/pages/Resources";
 import Updates from "@/pages/Updates";
+import PioneerProgram from "@/pages/PioneerProgram";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -21,6 +22,7 @@ function Router() {
       <Route path="/company" component={Company} />
       <Route path="/resources" component={Resources} />
       <Route path="/updates" component={Updates} />
+      <Route path="/pioneer" component={PioneerProgram} />
       <Route component={NotFound} />
     </Switch>
   );

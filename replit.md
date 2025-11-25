@@ -16,7 +16,7 @@ Preferred communication style: Simple, everyday language.
 
 **UI Component Library**: shadcn/ui components (Radix UI primitives) with Tailwind CSS for styling. The design follows a "technical elegance" approach inspired by modern tech companies like Stripe and Linear, with focus on clean layouts and progressive disclosure of information.
 
-**Routing**: Client-side routing using Wouter, a lightweight React router alternative. Routes include Home, Products, Company, Resources, and Updates pages.
+**Routing**: Client-side routing using Wouter, a lightweight React router alternative. Routes include Home, Products, Company, Resources, Updates, and Pioneer Program pages.
 
 **State Management**: TanStack Query (React Query) for server state management, API requests, and caching. Query client configured with custom fetch functions and error handling.
 

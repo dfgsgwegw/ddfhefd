@@ -14,6 +14,7 @@ export function Navigation() {
     { path: "/company", label: "Company" },
     { path: "/resources", label: "Resources" },
     { path: "/updates", label: "Updates" },
+    { path: "/pioneer", label: "Pioneer" },
   ];
 
   return (
