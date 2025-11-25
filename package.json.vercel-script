@@ -1,0 +1,5 @@
+Add this script to your package.json scripts section:
+
+"vercel-build": "vite build --outDir=dist/public"
+
+This tells Vercel how to build the frontend.

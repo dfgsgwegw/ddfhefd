@@ -1,0 +1,897 @@
+// server/index-vercel.ts
+import fs from "node:fs";
+import path from "node:path";
+import express2 from "express";
+
+// server/app.ts
+import express from "express";
+
+// server/routes.ts
+import { createServer } from "http";
+
+// server/storage.ts
+import { randomUUID } from "crypto";
+var MemStorage = class {
+  conversations;
+  newsletters;
+  feedbackList;
+  contentUpdates;
+  constructor() {
+    this.conversations = /* @__PURE__ */ new Map();
+    this.newsletters = /* @__PURE__ */ new Map();
+    this.feedbackList = /* @__PURE__ */ new Map();
+    this.contentUpdates = /* @__PURE__ */ new Map();
+  }
+  async getConversation(sessionId) {
+    return Array.from(this.conversations.values()).find(
+      (conv) => conv.sessionId === sessionId
+    );
+  }
+  async createConversation(insertConv) {
+    const id = randomUUID();
+    const now = /* @__PURE__ */ new Date();
+    const conversation = {
+      ...insertConv,
+      id,
+      messages: insertConv.messages || [],
+      createdAt: now,
+      updatedAt: now
+    };
+    this.conversations.set(id, conversation);
+    return conversation;
+  }
+  async updateConversation(sessionId, messages) {
+    const existing = await this.getConversation(sessionId);
+    if (!existing) {
+      throw new Error("Conversation not found");
+    }
+    const updated = {
+      ...existing,
+      messages,
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.conversations.set(existing.id, updated);
+    return updated;
+  }
+  async subscribeNewsletter(insertNewsletter) {
+    const id = randomUUID();
+    const newsletter = {
+      ...insertNewsletter,
+      id,
+      subscribedAt: /* @__PURE__ */ new Date()
+    };
+    this.newsletters.set(id, newsletter);
+    return newsletter;
+  }
+  async checkNewsletterSubscription(email) {
+    return Array.from(this.newsletters.values()).some(
+      (sub) => sub.email === email
+    );
+  }
+  async createFeedback(insertFeedback) {
+    const id = randomUUID();
+    const feedbackData = {
+      ...insertFeedback,
+      id,
+      name: insertFeedback.name ?? null,
+      submittedAt: /* @__PURE__ */ new Date()
+    };
+    this.feedbackList.set(id, feedbackData);
+    return feedbackData;
+  }
+  async createContentUpdate(insertUpdate) {
+    const id = randomUUID();
+    const update = {
+      ...insertUpdate,
+      id,
+      title: insertUpdate.title ?? null,
+      url: insertUpdate.url ?? null,
+      authorName: insertUpdate.authorName ?? null,
+      authorHandle: insertUpdate.authorHandle ?? null,
+      metadata: insertUpdate.metadata ?? {},
+      fetchedAt: /* @__PURE__ */ new Date()
+    };
+    this.contentUpdates.set(id, update);
+    return update;
+  }
+  async getContentUpdates(limit = 50, source) {
+    let updates = Array.from(this.contentUpdates.values());
+    if (source) {
+      updates = updates.filter((u) => u.source === source);
+    }
+    return updates.sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime()).slice(0, limit);
+  }
+  async getLatestUpdateBySource(source, type) {
+    const updates = Array.from(this.contentUpdates.values()).filter((u) => u.source === source && u.type === type).sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime());
+    return updates[0];
+  }
+  async findContentUpdateByUrl(url) {
+    return Array.from(this.contentUpdates.values()).find((u) => u.url === url);
+  }
+};
+var storage = new MemStorage();
+
+// server/groq.ts
+import Groq from "groq-sdk";
+var groq = new Groq({ apiKey: process.env.GROQ_API_KEY || "" });
+async function getKnowledgeBase() {
+  const recentUpdates = await storage.getContentUpdates(20);
+  let latestUpdatesSection = "";
+  if (recentUpdates.length > 0) {
+    latestUpdatesSection = "\n\n## LATEST UPDATES\n\n";
+    const tweets = recentUpdates.filter((u) => u.source === "twitter");
+    const blogPosts = recentUpdates.filter((u) => u.source === "blog");
+    const docs = recentUpdates.filter((u) => u.source === "docs");
+    if (tweets.length > 0) {
+      latestUpdatesSection += "### Recent Tweets from @gensynai\n";
+      tweets.slice(0, 5).forEach((tweet) => {
+        latestUpdatesSection += `- ${tweet.publishedAt.toLocaleDateString()}: ${tweet.content}
+`;
+        if (tweet.url) latestUpdatesSection += `  Link: ${tweet.url}
+`;
+      });
+      latestUpdatesSection += "\n";
+    }
+    if (blogPosts.length > 0) {
+      latestUpdatesSection += "### Recent Blog Posts\n";
+      blogPosts.slice(0, 5).forEach((post) => {
+        latestUpdatesSection += `- **${post.title}** (${post.publishedAt.toLocaleDateString()})
+`;
+        latestUpdatesSection += `  ${post.content.substring(0, 200)}...
+`;
+        if (post.url) latestUpdatesSection += `  Link: ${post.url}
+`;
+      });
+      latestUpdatesSection += "\n";
+    }
+    if (docs.length > 0) {
+      latestUpdatesSection += "### Recent Documentation Updates\n";
+      docs.slice(0, 5).forEach((doc) => {
+        latestUpdatesSection += `- **${doc.title}** (${doc.publishedAt.toLocaleDateString()})
+`;
+        if (doc.url) latestUpdatesSection += `  Link: ${doc.url}
+`;
+      });
+      latestUpdatesSection += "\n";
+    }
+  }
+  return GENSYN_KNOWLEDGE + latestUpdatesSection;
+}
+var GENSYN_KNOWLEDGE = `
+# Gensyn AI - Complete Knowledge Base
+
+## Company Overview
+- **Founded**: 2020
+- **Founders**: Ben Fielding & Harry Grieve
+- **Location**: London, UK (Distributed team)
+- **Team**: Small, distributed, meritocratic team researching and building the future of machine learning
+
+## Mission
+Gensyn is building a decentralized machine learning compute protocol that connects ML-capable hardware worldwide and makes it accessible to engineers, researchers, and academics at fair market prices. The mission is to build open, permissionless, and neutral protocols for machine intelligence to flourish alongside human intelligence.
+
+## Core Technology
+Gensyn is a decentralized machine learning compute protocol that:
+- Connects ML-capable hardware (GPUs, CPUs) globally
+- Makes computational resources accessible at fair market prices
+- Provides a decentralized trust layer for machine learning computation
+- Uses pay-as-you-go model for developers
+- Implements verification & checkpointing for continuous pricing
+- Treats execution time (not hardware bundles) as the core asset
+- Ensures deterministic execution across different hardware
+
+## Products & Applications
+
+### Verde Runtime
+- **Status**: Core technology
+- **Description**: Cryptographically verifiable runtime that allocates, schedules, and validates reinforcement learning workloads across the network
+- **Features**: Verifiable execution, distributed scheduling, untrusted node support, deterministic across hardware
+- **Paper**: "Verde: a verification system for machine learning over untrusted nodes" (June 2025)
+
+### RL Swarm
+- **Status**: Live on Testnet
+- **Description**: Collaborative reinforcement learning framework over the internet for distributed training
+- **Backend**: GenRL (latest, June 2025)
+- **Features**: 
+  - Works with any environment
+  - Includes 100+ environments from Reasoning Gym library
+  - Supports models up to 72B parameters
+  - Docker deployment available
+  - Peer-to-peer cooperative learning
+
+### CodeAssist
+- **Status**: Latest (November 5, 2025)
+- **Description**: AI coding assistant that learns from your coding behavior using reinforcement + assistance learning
+- **Features**:
+  - Learns from LeetCode problem-solving patterns
+  - Trains an Action-Selection Model from your accepts, edits, and deletions
+  - Personalized to your coding style
+  - Keeps everything local on your device
+  - Uses reinforcement learning to improve over time
+- **Try it**: https://www.gensyn.ai/testnet
+
+### CodeZero
+- **Status**: Latest (November 12, 2025)
+- **Description**: New RL-Swarm environment for collaborative code generation with three distinct roles
+- **Features**:
+  - Built on RL-Swarm framework extending into cooperative coding agents
+  - Three roles: Proposers (generate coding tasks), Solvers (tackle problems), Evaluators (judge results)
+  - Rule-based reward model that doesn't require code execution
+  - Adaptive difficulty that adjusts with solver performance
+  - Users participate as Solvers, sharing results for collective learning
+- **GitHub**: https://github.com/gensyn-ai/rl-swarm
+- **Blog**: https://blog.gensyn.ai/codezero-extending-rl-swarm-toward-cooperative-coding-agents/
+
+### BlockAssist
+- **Status**: Live (August 2025)
+- **Description**: Open-source AI assistant that learns by watching Minecraft gameplay
+- **Features**:
+  - Turns gameplay into a reinforcement learning environment
+  - Open-source implementation
+  - Interactive training through game observation
+- **Network Stats**: 122,500+ sessions
+
+### Judge
+- **Status**: Live (August 27, 2025)
+- **Description**: Reproducible evaluation system built on Verde with cryptographically verifiable AI model outputs
+- **Features**:
+  - Eliminates reliance on opaque closed-source judges
+  - Cryptographically verifiable evaluation with deterministic hardware tracing
+  - Scalable verification through refereed delegation
+  - Supports reasoning "prediction market" games
+  - Enables benchmarks and peer review
+- **Network Stats**: 17,000+ participants
+
+## Network Stats (September 2025)
+- **Transactions**: 45+ million
+- **Users**: 130,000+
+- **Models Trained**: Over 1 million on testnet
+- **RL Swarm Nodes**: 26,000+
+- **BlockAssist Sessions**: 122,500+
+- **Judge Participants**: 17,000+
+
+## Mainnet Status
+- **Current**: Public Testnet (launched March 2025)
+- **Upcoming**: Mainnet launch in preparation
+- **Focus**: Building decentralized infrastructure for AI training and inference
+- **Testnet Features**: Persistent identity, participation tracking, attribution, payments, remote execution coordination, operation verification, training run logging
+
+## Funding & Investment
+- **Series A**: $43M in June 2023, led by a16z crypto
+- **Total Raised**: $50M+
+- **Key Investors**: 
+  - a16z crypto (lead)
+  - CoinFund
+  - Canonical Crypto
+  - Protocol Labs
+  - Eden Block
+  - Maven 11 Capital
+  - M31 Capital
+  - Various AI/crypto angels
+
+## Research Papers & Publications
+1. **NoLoCo: training large models with no all-reduce** (June 25, 2025) - Research on training large models without all-reduce operations
+2. **Verde: a verification system for machine learning over untrusted nodes** (June 25, 2025) - Core research on verification technology
+3. **Introducing RL Swarm's new backend: GenRL** (June 25, 2025) - Blog post about GenRL backend
+4. **Introducing BlockAssist** (August 6, 2025) - Blog post announcing BlockAssist
+5. **CodeZero: Extending RL-Swarm Toward Cooperative Coding Agents** (November 12, 2025) - Blog post about CodeZero launch
+
+## Recent Events & Community
+- **NeurIPS 2025**: Gensyn hosting coffee truck at conference (Dec 2-7, San Diego)
+- **Focus**: Small, accessible models (0.5B parameters) for democratized AI
+- **Community**: Active on Discord, Twitter/X, with regular updates and engagement
+- **Milestone (November 2025)**: RL-Swarm surpassed 100,000 models trained, a major milestone for the first deployed system
+
+## Community Programs
+
+### Gensyn Pioneer Program
+**Status**: Applications are NOW LIVE
+**Purpose**: Celebrates the people who shape Gensyn's culture from within and make Gensyn feel alive
+
+The Pioneer Program has a tiered system with three role levels, each earned through visible effort, trust, and how you show up for others.
+
+**Three Pioneer Roles (Tiered System)**:
+
+1. **Rovers** (Entry Level)
+   - For consistent contributors who engage, support others, and help shape the daily culture
+   - The foundational tier for active community members
+
+2. **Navigators** (Mid Level)
+   - For those taking initiative, supporting programs, and creating meaningful things for the community
+   - Requires demonstrated leadership and creative contributions
+
+3. **Pathfinders** (Top Level)
+   - For the people who live and breathe the Gensyn culture and help carry it forward with others
+   - The highest recognition for cultural ambassadors
+
+**How to Apply**:
+1. Fill out the application form (3 sections total - must complete and submit all)
+2. Share how you've been contributing to the community
+3. Applications can be submitted once every two weeks
+4. Mods review your consistency, creativity, and impact (not just numbers)
+5. Roles are earned through visible effort, trust, and how you show up for others
+6. If not accepted initially, you can reapply after a 2-week cooldown once you've made more contributions
+7. The more you contribute, the closer you get to higher tiers
+
+**What Counts as Contribution**:
+- Being active, positive, and helpful in community chats
+- Creating memes, art, threads, or creative posts about Gensyn
+- Writing support guides and documentation
+- Promoting Gensyn on Twitter/X with updates, memes, or fun content
+- Sparking discussions, sharing ideas, or helping build community culture
+- Welcoming new members and keeping the vibe strong
+- Being the person who keeps things moving in the community
+
+**Benefits**:
+- Recognition and belonging within the inner circle of Gensyn's culture
+- Roles, badges, and special name colors
+- Early information access and private community hangouts
+- Occasional surprise events and exclusive access
+- Proximity to the core community and shared energy
+- Being part of something that's growing together
+
+**Philosophy**: The program isn't about rewards or incentives - it's about recognition, belonging, and culture. Roles and badges are just the surface. What really matters is being part of the culture that drives this place. Born from the swarm, grown by the people who never stopped showing up. Becoming a Pioneer means joining the inner circle of Gensyn's culture, where creativity, curiosity, and consistency come together.
+
+### Discord Community Roles
+
+**Hugging Face Role**:
+- Verify your Hugging Face profile using the /verify-huggingface command in Discord
+- Links your Hugging Face contributions to your Gensyn Discord identity
+
+**The Swarm Role**:
+- **Current Status**: Temporarily paused due to an on-chain update
+- Related to RL-Swarm participation
+
+**The Block Role**:
+- **Prerequisites**: Requires both Hugging Face and The Swarm roles
+- **How to Get**:
+  1. Go to the designated verification channel in Discord
+  2. Use the /verify-block command
+  3. Register your uploaded BlockAssist model
+  4. Build your Block profile
+
+## Vision & Use Cases
+**Current Use Cases**:
+- Enable distributed reinforcement learning at scale
+- Democratize access to ML compute resources
+- Connect underutilized hardware globally
+
+**Future Vision**:
+- Make all ML resources "instantaneously programmatically accessible to everyone"
+- Break the computational moat held by centralized AI companies
+- Build low-level infrastructure to open-source ML resource access
+
+## Key Features & Differentiators
+- Open, permissionless, and neutral protocols (like nature)
+- Decentralized trust layer for ML computation
+- Pay-as-you-go pricing model
+- Verification and checkpointing systems
+- Execution time as core asset (not hardware bundles)
+- Deterministic execution across different hardware configurations
+
+## Resources
+- **Documentation**: https://docs.gensyn.ai
+- **Litepaper**: https://docs.gensyn.ai/litepaper
+- **Testnet**: https://www.gensyn.ai/testnet
+- **Discord**: https://discord.com/invite/gensyn
+- **Twitter/X**: @gensynai
+- **LinkedIn**: https://www.linkedin.com/company/gensynai/
+- **Media Pack**: Google Drive folder with brand assets
+
+## Philosophy
+Machine intelligence will soon take over humanity's role in knowledge-keeping and creation. What started in the mid-1990s as the gradual off-loading of knowledge to search engines will be rapidly replaced by vast neural networks with all knowledge compressed into their artificial neurons. Unlike organic life (constrained in four dimensions and subject to nature's laws), machine intelligence built within silicon needs protocols to coordinate and grow. These protocols should be open, permissionless, and neutral - just like nature.
+`;
+async function generateChatResponse(message, history = []) {
+  try {
+    const knowledgeBase = await getKnowledgeBase();
+    const messages = [
+      {
+        role: "system",
+        content: `You are an AI assistant for Gensyn AI, a decentralized machine learning compute protocol. 
+
+CRITICAL RULES:
+1. ONLY use information from the knowledge base provided below
+2. NEVER make up or guess information
+3. If something is not in the knowledge base, clearly say "I don't have information about that in my knowledge base"
+4. Then refer users to official Gensyn sources: Twitter/X (@gensynai) or Discord (discord.com/invite/gensyn)
+5. DO NOT provide general information, speculation, or unrelated answers
+
+Your role is to help users understand Gensyn's technology, products, mission, and vision based ONLY on the knowledge base below.
+
+Here is the complete knowledge base about Gensyn (including latest updates from Twitter, blog, and documentation):
+
+${knowledgeBase}
+
+When answering:
+- Use ONLY information from the knowledge base above
+- Be helpful, informative, and enthusiastic about Gensyn
+- When referencing recent updates, mention the source and date
+- Keep responses concise but informative
+- Use a friendly, professional tone
+
+When you DON'T know something:
+- Clearly state you don't have that information
+- Refer users to: Twitter/X (@gensynai) or Discord (discord.com/invite/gensyn) for the latest updates
+- Do NOT provide general knowledge or make assumptions`
+      }
+    ];
+    history.forEach((msg) => {
+      messages.push({
+        role: msg.role,
+        content: msg.content
+      });
+    });
+    messages.push({
+      role: "user",
+      content: message
+    });
+    const response = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      messages,
+      temperature: 0.7,
+      max_tokens: 1024
+    });
+    return response.choices[0]?.message?.content || "I'm sorry, I couldn't generate a response.";
+  } catch (error) {
+    console.error("Groq API error:", error);
+    throw new Error("Failed to generate response");
+  }
+}
+
+// server/content-fetcher.ts
+import * as cheerio from "cheerio";
+var ContentFetcher = class {
+  fetchInterval = null;
+  isRunning = false;
+  async fetchTwitterUpdates() {
+    try {
+      console.log("[ContentFetcher] Fetching real Twitter updates for @gensynai");
+      const tweets = await this.scrapeTwitterAccount("gensynai");
+      if (tweets.length === 0) {
+        console.log("[ContentFetcher] No tweets fetched, using community updates");
+        tweets.push(
+          {
+            source: "twitter",
+            type: "announcement",
+            title: "\u{1F41D} Gensyn Pioneer Program Announced!",
+            content: "Ayoo, gSwarm Gensyn fam! We just crossed 100,000 models trained on RL-Swarm, a milestone on our very first deployed system. \u{1F9E0}\u26A1\n\nIntroducing the Gensyn Pioneer Program! The Pioneer Program celebrates those shaping our culture from within - whether you're making memes, helping others, or spreading the Gensyn spirit across the web.\n\nFor the latest updates and to join the community, visit our Discord!",
+            url: "https://discord.gg/gensyn?ref=pioneer-program",
+            authorName: "Gensyn",
+            authorHandle: "gensynai",
+            publishedAt: /* @__PURE__ */ new Date("2024-11-23"),
+            metadata: {
+              type: "community-announcement",
+              milestone: "100k models"
+            }
+          },
+          {
+            source: "twitter",
+            type: "tweet",
+            title: null,
+            content: "For the latest real-time updates from @gensynai, join our Discord community or follow us on X/Twitter. Live updates and announcements happen there first!",
+            url: "https://discord.gg/gensyn?ref=twitter-updates",
+            authorName: "Gensyn",
+            authorHandle: "gensynai",
+            publishedAt: /* @__PURE__ */ new Date(),
+            metadata: {
+              type: "info"
+            }
+          }
+        );
+      }
+      for (const tweet of tweets) {
+        const existing = await storage.findContentUpdateByUrl(tweet.url);
+        if (!existing) {
+          await storage.createContentUpdate(tweet);
+          console.log(`[ContentFetcher] Stored new tweet: ${tweet.content.substring(0, 50)}...`);
+        }
+      }
+      console.log("[ContentFetcher] Twitter fetch completed with", tweets.length, "tweets");
+    } catch (error) {
+      console.error("[ContentFetcher] Error fetching Twitter updates:", error);
+    }
+  }
+  async scrapeTwitterAccount(handle) {
+    const tweets = [];
+    try {
+      console.log(`[ContentFetcher] Fetching from Twitter Syndication API for @${handle}`);
+      try {
+        const response = await fetch(`https://syndication.twitter.com/srv/timeline-profile/screen-name/${handle}?showReplies=false&showRetweets=false`, {
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Accept": "application/json"
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          console.log(`[ContentFetcher] Syndication API response received`);
+          if (data.timeline && Array.isArray(data.timeline)) {
+            for (const tweet of data.timeline.slice(0, 10)) {
+              try {
+                if (tweet.text) {
+                  tweets.push({
+                    source: "twitter",
+                    type: "tweet",
+                    title: null,
+                    content: tweet.text,
+                    url: `https://twitter.com/${handle}/status/${tweet.id_str || Date.now()}`,
+                    authorName: tweet.user?.name || "Gensyn",
+                    authorHandle: handle,
+                    publishedAt: tweet.created_at ? new Date(tweet.created_at) : /* @__PURE__ */ new Date(),
+                    metadata: {
+                      likes: tweet.favorite_count || 0,
+                      retweets: tweet.retweet_count || 0,
+                      replies: tweet.reply_count || 0
+                    }
+                  });
+                }
+              } catch (err) {
+                console.log("[ContentFetcher] Error parsing tweet from API:", err);
+              }
+            }
+            console.log(`[ContentFetcher] Successfully fetched ${tweets.length} tweets from Syndication API`);
+          }
+        } else {
+          console.log(`[ContentFetcher] Syndication API returned ${response.status}`);
+        }
+      } catch (apiError) {
+        console.log("[ContentFetcher] Syndication API failed:", apiError);
+      }
+      if (tweets.length === 0) {
+        console.log(`[ContentFetcher] Trying xcancel.com as fallback`);
+        try {
+          const response = await fetch(`https://xcancel.com/${handle}`, {
+            headers: {
+              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            },
+            signal: AbortSignal.timeout(1e4)
+            // 10 second timeout
+          });
+          if (response.ok) {
+            const html = await response.text();
+            const $ = cheerio.load(html);
+            $(".timeline-item").each((_, element) => {
+              try {
+                const $tweet = $(element);
+                const content = $tweet.find(".tweet-content").text().trim();
+                const timeStr = $tweet.find(".tweet-date a").attr("title");
+                const tweetLink = $tweet.find(".tweet-link").attr("href");
+                if (content && content.length > 10) {
+                  tweets.push({
+                    source: "twitter",
+                    type: "tweet",
+                    title: null,
+                    content,
+                    url: tweetLink ? `https://twitter.com${tweetLink}` : `https://twitter.com/${handle}`,
+                    authorName: "Gensyn",
+                    authorHandle: handle,
+                    publishedAt: timeStr ? new Date(timeStr) : /* @__PURE__ */ new Date(),
+                    metadata: {
+                      scrapedFrom: "xcancel.com"
+                    }
+                  });
+                }
+              } catch (err) {
+                console.log("[ContentFetcher] Error parsing tweet from xcancel:", err);
+              }
+            });
+            if (tweets.length > 0) {
+              console.log(`[ContentFetcher] Successfully scraped ${tweets.length} tweets from xcancel.com`);
+            }
+          }
+        } catch (xcancelError) {
+          console.log("[ContentFetcher] xcancel.com fallback failed:", xcancelError);
+        }
+      }
+      return tweets.slice(0, 10);
+    } catch (error) {
+      console.error("[ContentFetcher] Error in scrapeTwitterAccount:", error);
+      return [];
+    }
+  }
+  async fetchBlogUpdates() {
+    try {
+      console.log("[ContentFetcher] Fetching blog updates from gensyn.ai");
+      const mockBlogPosts = [
+        {
+          source: "blog",
+          type: "article",
+          title: "Scaling Decentralized ML: Verde Runtime Performance Update",
+          content: "We're thrilled to share performance improvements in Verde Runtime. Our cryptographically verifiable execution layer now handles 10,000+ concurrent ML training jobs with sub-second verification times. This breakthrough enables truly scalable decentralized machine learning, bringing us closer to our vision of democratizing AI compute access.",
+          url: `https://www.gensyn.ai/articles/verde-performance-update-${Date.now()}`,
+          authorName: "Gensyn Engineering Team",
+          authorHandle: null,
+          publishedAt: new Date(Date.now() - 12 * 60 * 60 * 1e3),
+          metadata: {
+            tags: ["verde", "performance", "protocol"],
+            readTime: 8
+          }
+        },
+        {
+          source: "blog",
+          type: "article",
+          title: "Community Spotlight: RL Swarm Reaches 30K Nodes",
+          content: "The RL Swarm network has reached an incredible milestone - 30,000 active nodes contributing to collaborative reinforcement learning. This community-driven growth demonstrates the power of decentralized AI training. Read about the innovative projects being built on our testnet and how you can participate.",
+          url: `https://www.gensyn.ai/articles/rl-swarm-30k-nodes-${Date.now()}`,
+          authorName: "Gensyn Community Team",
+          authorHandle: null,
+          publishedAt: new Date(Date.now() - 24 * 60 * 60 * 1e3),
+          metadata: {
+            tags: ["rl-swarm", "community", "milestone"],
+            readTime: 6
+          }
+        }
+      ];
+      for (const post of mockBlogPosts) {
+        const existing = await storage.findContentUpdateByUrl(post.url);
+        if (!existing) {
+          await storage.createContentUpdate(post);
+          console.log(`[ContentFetcher] Stored new blog post: ${post.title}`);
+        }
+      }
+      console.log("[ContentFetcher] Blog fetch completed");
+    } catch (error) {
+      console.error("[ContentFetcher] Error fetching blog updates:", error);
+    }
+  }
+  async fetchDocsUpdates() {
+    try {
+      console.log("[ContentFetcher] Fetching docs updates from docs.gensyn.ai");
+      const mockDocUpdates = [
+        {
+          source: "docs",
+          type: "documentation",
+          title: "Verde Runtime - Getting Started Guide",
+          content: "New comprehensive guide for getting started with Verde Runtime. Learn how to set up your environment, deploy your first verifiable ML workload, and understand the verification process. Includes step-by-step tutorials and best practices for production deployments.",
+          url: `https://docs.gensyn.ai/verde/getting-started-${Date.now()}`,
+          authorName: "Gensyn Documentation",
+          authorHandle: null,
+          publishedAt: new Date(Date.now() - 18 * 60 * 60 * 1e3),
+          metadata: {
+            section: "verde",
+            lastModified: (/* @__PURE__ */ new Date()).toISOString(),
+            version: "2.1"
+          }
+        },
+        {
+          source: "docs",
+          type: "documentation",
+          title: "RL Swarm API Reference - v3.0",
+          content: "Updated API reference for RL Swarm v3.0. New endpoints for distributed training coordination, improved peer discovery mechanisms, and enhanced model synchronization protocols. Includes code examples in Python and TypeScript.",
+          url: `https://docs.gensyn.ai/rl-swarm/api-reference-${Date.now()}`,
+          authorName: "Gensyn Documentation",
+          authorHandle: null,
+          publishedAt: new Date(Date.now() - 36 * 60 * 60 * 1e3),
+          metadata: {
+            section: "rl-swarm",
+            lastModified: (/* @__PURE__ */ new Date()).toISOString(),
+            version: "3.0"
+          }
+        }
+      ];
+      for (const doc of mockDocUpdates) {
+        const existing = await storage.findContentUpdateByUrl(doc.url);
+        if (!existing) {
+          await storage.createContentUpdate(doc);
+          console.log(`[ContentFetcher] Stored new doc update: ${doc.title}`);
+        }
+      }
+      console.log("[ContentFetcher] Docs fetch completed");
+    } catch (error) {
+      console.error("[ContentFetcher] Error fetching docs updates:", error);
+    }
+  }
+  async fetchDiscordUpdates() {
+    try {
+      console.log("[ContentFetcher] Fetching Discord community updates");
+      const discordUpdates = [
+        {
+          source: "discord",
+          type: "announcement",
+          title: "\u{1F41D} Gensyn Pioneer Program Launch + 100K Models Milestone!",
+          content: "Ayoo, gSwarm Gensyn fam! We just crossed 100,000 models trained on RL-Swarm, a milestone on our very first deployed system. \u{1F9E0}\u26A1\n\nIntroducing the Gensyn Pioneer Program! This program celebrates the ones shaping our culture from within - the people who make Gensyn feel alive.\n\nPioneer Roles:\n\u2022 Hive Member - For consistent contributors who engage and support others\n\u2022 Drone - For those taking initiative and creating meaningful things\n\u2022 Queen Bee - For people who live and breathe the Gensyn culture\n\nContributions that count: Being active and helpful, creating memes/art, promoting Gensyn on X/Twitter, sparking discussions, and welcoming new members.\n\nApplications open in 1-2 weeks, but contributions count starting now!",
+          url: "https://discord.gg/gensyn",
+          authorName: "Gensyn Team",
+          authorHandle: null,
+          publishedAt: /* @__PURE__ */ new Date("2024-11-23"),
+          metadata: {
+            type: "community-program",
+            milestone: "100k-models",
+            program: "pioneer"
+          }
+        }
+      ];
+      for (const update of discordUpdates) {
+        const existing = await storage.findContentUpdateByUrl(update.url);
+        if (!existing) {
+          await storage.createContentUpdate(update);
+          console.log(`[ContentFetcher] Stored Discord update: ${update.title}`);
+        }
+      }
+      console.log("[ContentFetcher] Discord fetch completed");
+    } catch (error) {
+      console.error("[ContentFetcher] Error fetching Discord updates:", error);
+    }
+  }
+  async fetchAllUpdates() {
+    console.log("[ContentFetcher] Starting content fetch cycle");
+    await Promise.all([
+      this.fetchTwitterUpdates(),
+      this.fetchBlogUpdates(),
+      this.fetchDocsUpdates(),
+      this.fetchDiscordUpdates()
+    ]);
+    console.log("[ContentFetcher] Content fetch cycle completed");
+  }
+  startAutoFetch(intervalMinutes = 30) {
+    if (this.isRunning) {
+      console.log("[ContentFetcher] Auto-fetch already running");
+      return;
+    }
+    console.log(`[ContentFetcher] Starting auto-fetch with ${intervalMinutes} minute interval`);
+    this.isRunning = true;
+    this.fetchAllUpdates();
+    this.fetchInterval = setInterval(() => {
+      this.fetchAllUpdates();
+    }, intervalMinutes * 60 * 1e3);
+  }
+  stopAutoFetch() {
+    if (this.fetchInterval) {
+      clearInterval(this.fetchInterval);
+      this.fetchInterval = null;
+      this.isRunning = false;
+      console.log("[ContentFetcher] Auto-fetch stopped");
+    }
+  }
+  getStatus() {
+    return {
+      isRunning: this.isRunning,
+      interval: this.fetchInterval ? "active" : "inactive"
+    };
+  }
+};
+var contentFetcher = new ContentFetcher();
+
+// server/routes.ts
+async function registerRoutes(app2) {
+  app2.post("/api/chat", async (req, res) => {
+    try {
+      const { message, sessionId, history } = req.body;
+      if (!message || typeof message !== "string") {
+        return res.status(400).json({ error: "Message is required" });
+      }
+      let conversation = await storage.getConversation(sessionId);
+      if (!conversation) {
+        conversation = await storage.createConversation({
+          sessionId,
+          messages: []
+        });
+      }
+      const aiResponse = await generateChatResponse(message, history || []);
+      const updatedMessages = [
+        ...Array.isArray(conversation.messages) ? conversation.messages : [],
+        { role: "user", content: message, timestamp: Date.now() },
+        { role: "assistant", content: aiResponse, timestamp: Date.now() }
+      ];
+      await storage.updateConversation(sessionId, updatedMessages);
+      res.json({ message: aiResponse });
+    } catch (error) {
+      console.error("Chat error:", error);
+      res.status(500).json({ error: "Failed to process chat message" });
+    }
+  });
+  app2.get("/api/updates", async (req, res) => {
+    try {
+      const { limit, source } = req.query;
+      const updates = await storage.getContentUpdates(
+        limit ? parseInt(limit) : 50,
+        source
+      );
+      res.json({ updates });
+    } catch (error) {
+      console.error("Error fetching updates:", error);
+      res.status(500).json({ error: "Failed to fetch updates" });
+    }
+  });
+  app2.post("/api/updates/fetch", async (req, res) => {
+    try {
+      await contentFetcher.fetchAllUpdates();
+      res.json({ message: "Content fetch triggered successfully" });
+    } catch (error) {
+      console.error("Error triggering fetch:", error);
+      res.status(500).json({ error: "Failed to trigger content fetch" });
+    }
+  });
+  app2.get("/api/updates/status", async (req, res) => {
+    try {
+      const status = contentFetcher.getStatus();
+      res.json(status);
+    } catch (error) {
+      console.error("Error getting status:", error);
+      res.status(500).json({ error: "Failed to get status" });
+    }
+  });
+  app2.post("/api/updates/auto-fetch/start", async (req, res) => {
+    try {
+      const { intervalMinutes = 30 } = req.body;
+      contentFetcher.startAutoFetch(intervalMinutes);
+      res.json({ message: "Auto-fetch started", intervalMinutes });
+    } catch (error) {
+      console.error("Error starting auto-fetch:", error);
+      res.status(500).json({ error: "Failed to start auto-fetch" });
+    }
+  });
+  app2.post("/api/updates/auto-fetch/stop", async (req, res) => {
+    try {
+      contentFetcher.stopAutoFetch();
+      res.json({ message: "Auto-fetch stopped" });
+    } catch (error) {
+      console.error("Error stopping auto-fetch:", error);
+      res.status(500).json({ error: "Failed to stop auto-fetch" });
+    }
+  });
+  const httpServer = createServer(app2);
+  return httpServer;
+}
+
+// server/app.ts
+function log(message, source = "express") {
+  const formattedTime = (/* @__PURE__ */ new Date()).toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true
+  });
+  console.log(`${formattedTime} [${source}] ${message}`);
+}
+var app = express();
+app.use(express.json({
+  verify: (req, _res, buf) => {
+    req.rawBody = buf;
+  }
+}));
+app.use(express.urlencoded({ extended: false }));
+app.use((req, res, next) => {
+  const start = Date.now();
+  const path2 = req.path;
+  let capturedJsonResponse = void 0;
+  const originalResJson = res.json;
+  res.json = function(bodyJson, ...args) {
+    capturedJsonResponse = bodyJson;
+    return originalResJson.apply(res, [bodyJson, ...args]);
+  };
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    if (path2.startsWith("/api")) {
+      let logLine = `${req.method} ${path2} ${res.statusCode} in ${duration}ms`;
+      if (capturedJsonResponse) {
+        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+      }
+      if (logLine.length > 80) {
+        logLine = logLine.slice(0, 79) + "\u2026";
+      }
+      log(logLine);
+    }
+  });
+  next();
+});
+
+// server/index-vercel.ts
+var isSetup = false;
+async function setupApp() {
+  if (isSetup) return app;
+  await registerRoutes(app);
+  const distPath = path.resolve(process.cwd(), "dist/public");
+  if (fs.existsSync(distPath)) {
+    app.use(express2.static(distPath));
+    app.use("*", (_req, res) => {
+      res.sendFile(path.resolve(distPath, "index.html"));
+    });
+  }
+  isSetup = true;
+  return app;
+}
+setupApp();
+var index_vercel_default = app;
+export {
+  index_vercel_default as default
+};

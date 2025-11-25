@@ -1,0 +1,57 @@
+16:37:34.878 Running build in Portland, USA (West) – pdx1
+16:37:34.878 Build machine configuration: 2 cores, 8 GB
+16:37:34.975 Cloning github.com/dfgsgwegw/ddfhefd (Branch: main, Commit: 869e0ad)
+16:37:34.976 Previous build caches not available.
+16:37:35.445 Cloning completed: 469.000ms
+16:37:35.499 Found .vercelignore
+16:37:35.507 Removed 40 ignored files defined in .vercelignore
+16:37:35.507   /.git/config
+16:37:35.507   /.git/description
+16:37:35.507   /.git/FETCH_HEAD
+16:37:35.507   /.git/HEAD
+16:37:35.508   /.git/hooks/applypatch-msg.sample
+16:37:35.508   /.git/hooks/commit-msg.sample
+16:37:35.509   /.git/hooks/fsmonitor-watchman.sample
+16:37:35.509   /.git/hooks/post-update.sample
+16:37:35.509   /.git/hooks/pre-applypatch.sample
+16:37:35.509   /.git/hooks/pre-commit.sample
+16:37:35.848 Running "vercel build"
+16:37:36.292 Vercel CLI 48.10.5
+16:37:37.023 Running "install" command: `npm install`...
+16:37:41.648 npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+16:37:42.487 npm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is
+16:37:42.554 npm warn deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.is
+16:37:49.322 
+16:37:49.323 added 650 packages, and audited 651 packages in 12s
+16:37:49.323 
+16:37:49.323 91 packages are looking for funding
+16:37:49.324   run `npm fund` for details
+16:37:49.356 
+16:37:49.357 12 vulnerabilities (3 low, 6 moderate, 3 high)
+16:37:49.357 
+16:37:49.357 To address issues that do not require attention, run:
+16:37:49.357   npm audit fix
+16:37:49.358 
+16:37:49.358 To address all issues (including breaking changes), run:
+16:37:49.358   npm audit fix --force
+16:37:49.358 
+16:37:49.358 Run `npm audit` for details.
+16:37:49.609 
+16:37:49.609 > rest-express@1.0.0 build:vercel
+16:37:49.609 > vite build --outDir=dist/public
+16:37:49.609 
+16:37:49.876 [36mvite v5.4.20 [32mbuilding for production...[36m[39m
+16:37:49.924 transforming...
+16:37:51.093 
+16:37:51.094 A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+16:37:54.388 [32m✓[39m 1686 modules transformed.
+16:37:54.669 rendering chunks...
+16:37:54.678 computing gzip size...
+16:37:54.696 [2mdist/public/[22m[32mindex.html                                          [39m[1m[2m  1.33 kB[22m[1m[22m[2m │ gzip:   0.64 kB[22m
+16:37:54.697 [2mdist/public/[22m[2massets/[22m[32mL-4D2qr9_400x400_1763889842435-RxLgyFka.jpg  [39m[1m[2m  6.76 kB[22m[1m[22m
+16:37:54.697 [2mdist/public/[22m[2massets/[22m[32m1500x500_1763889842435-Cj8WtBdo.jpg          [39m[1m[2m129.03 kB[22m[1m[22m
+16:37:54.697 [2mdist/public/[22m[2massets/[22m[35mindex-LBaxr3Xj.css                           [39m[1m[2m 73.96 kB[22m[1m[22m[2m │ gzip:  12.00 kB[22m
+16:37:54.697 [2mdist/public/[22m[2massets/[22m[36mindex-DvOyrXzu.js                            [39m[1m[2m342.53 kB[22m[1m[22m[2m │ gzip: 107.26 kB[22m
+16:37:54.698 [32m✓ built in 4.80s[39m
+16:37:54.741 Error: No Output Directory named "public" found after the Build completed. Update vercel.json#outputDirectory to ensure the correct output directory is generated.
+16:37:54.741 Learn More: https://vercel.link/missing-public-directory
