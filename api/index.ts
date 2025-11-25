@@ -108,15 +108,17 @@ app.post("/api/updates/auto-fetch/stop", async (req, res) => {
 // Export handler for Vercel
 export default async (req: VercelRequest, res: VercelResponse) => {
   // Check for required environment variables
-  const requiredEnvVars = ['GROQ_API_KEY', 'DATABASE_URL'];
-  const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
-
-  if (missingVars.length > 0) {
+  if (!process.env.GROQ_API_KEY) {
     return res.status(500).json({
       error: 'Server configuration error',
-      message: `Missing required environment variables: ${missingVars.join(', ')}`,
-      hint: 'Please configure these in Vercel → Project Settings → Environment Variables'
+      message: 'Missing required environment variable: GROQ_API_KEY',
+      hint: 'Please add GROQ_API_KEY in Vercel → Project Settings → Environment Variables. Get a free key at https://console.groq.com/keys'
     });
+  }
+
+  // DATABASE_URL is optional - will use in-memory storage if not provided
+  if (!process.env.DATABASE_URL) {
+    console.warn('DATABASE_URL not set - using in-memory storage (data will not persist between deployments)');
   }
 
   // Resolve when the response finishes
