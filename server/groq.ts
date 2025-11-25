@@ -224,23 +224,28 @@ The Pioneer Program has a tiered system with three role levels, each earned thro
 
 **Philosophy**: The program isn't about rewards or incentives - it's about recognition, belonging, and culture. Roles and badges are just the surface. What really matters is being part of the culture that drives this place. Born from the swarm, grown by the people who never stopped showing up. Becoming a Pioneer means joining the inner circle of Gensyn's culture, where creativity, curiosity, and consistency come together.
 
-### Discord Community Roles
+### The Core - Discord Verification System
 
-**Hugging Face Role**:
-- Verify your Hugging Face profile using the /verify-huggingface command in Discord
-- Links your Hugging Face contributions to your Gensyn Discord identity
+**Overview**: The Core is the exclusive verification channel used for verifying access to various Gensyn roles and programs.
+
+**Hugging Face Verification**:
+- Use the command `/verify-huggingface` in The Core channel
+- This registers your Hugging Face profile with your Discord identity
+- Links your Hugging Face contributions to Gensyn
 
 **The Swarm Role**:
 - **Current Status**: Temporarily paused due to an on-chain update
 - Related to RL-Swarm participation
+- Check Discord announcements for updates on when this will be available again
 
-**The Block Role**:
+**The Block Verification**:
 - **Prerequisites**: Requires both Hugging Face and The Swarm roles
 - **How to Get**:
-  1. Go to the designated verification channel in Discord
-  2. Use the /verify-block command
+  1. Once you have both roles above, go to the "No Access" channel
+  2. Use the command `/verify-block`
   3. Register your uploaded BlockAssist model
-  4. Build your Block profile
+  4. Complete the process to build your @Block profile
+- This verification connects your BlockAssist model contributions to your Discord identity
 
 ## Vision & Use Cases
 **Current Use Cases**:

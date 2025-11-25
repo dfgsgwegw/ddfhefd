@@ -97,6 +97,50 @@ Gensyn is a decentralized machine learning compute protocol that:
 3. **Introducing RL Swarm's new backend: GenRL** (June 25, 2025) - Blog post about GenRL backend
 4. **Introducing BlockAssist** (August 6, 2025) - Blog post announcing BlockAssist
 
+## Community Programs
+
+### Gensyn Pioneer Program
+**Status**: Applications are NOW LIVE
+**Purpose**: Celebrates the people who shape Gensyn's culture from within and make Gensyn feel alive
+
+The Pioneer Program has three role tiers, each earned through visible effort, trust, and how you show up for others.
+
+**How to Apply**:
+1. Fill out the application form (3 sections total - must complete and submit all)
+2. Share how you've been contributing to the community
+3. Applications can be submitted once every two weeks
+4. Mods review your consistency, creativity, and impact (not just numbers)
+5. If not accepted initially, you can reapply after a 2-week cooldown
+
+**What Counts as Contribution**:
+- Being active, positive, and helpful in community chats
+- Creating memes, art, threads, or creative posts about Gensyn
+- Promoting Gensyn on Twitter/X with updates, memes, or fun content
+- Sparking discussions, sharing ideas, or helping build community culture
+- Welcoming new members and keeping the vibe strong
+
+**Philosophy**: The program isn't about rewards or incentives - it's about recognition, belonging, and culture. Becoming a Pioneer means joining the inner circle of Gensyn's culture, where creativity, curiosity, and consistency come together.
+
+### The Core - Discord Verification System
+
+**Overview**: The Core is the exclusive verification channel used for verifying access to various Gensyn roles and programs.
+
+**Hugging Face Verification**:
+- Use the command /verify-huggingface in The Core channel
+- This registers your Hugging Face profile with your Discord identity
+
+**The Swarm Role**:
+- **Current Status**: Temporarily paused due to an on-chain update
+- Related to RL-Swarm participation
+
+**The Block Verification**:
+- **Prerequisites**: Requires both Hugging Face and The Swarm roles
+- **How to Get**:
+  1. Once you have both roles above, go to the "No Access" channel
+  2. Use the command /verify-block
+  3. Register your uploaded BlockAssist model
+  4. Complete the process to build your @Block profile
+
 ## Vision & Use Cases
 **Current Use Cases**:
 - Enable distributed reinforcement learning at scale
