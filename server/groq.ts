@@ -229,7 +229,7 @@ The Pioneer Program has a tiered system with three role levels, each earned thro
 **Overview**: The Core is the exclusive verification channel used for verifying access to various Gensyn roles and programs.
 
 **Hugging Face Verification**:
-- Use the command `/verify-huggingface` in The Core channel
+- Use the command /verify-huggingface in The Core channel
 - This registers your Hugging Face profile with your Discord identity
 - Links your Hugging Face contributions to Gensyn
 
@@ -242,7 +242,7 @@ The Pioneer Program has a tiered system with three role levels, each earned thro
 - **Prerequisites**: Requires both Hugging Face and The Swarm roles
 - **How to Get**:
   1. Once you have both roles above, go to the "No Access" channel
-  2. Use the command `/verify-block`
+  2. Use the command /verify-block
   3. Register your uploaded BlockAssist model
   4. Complete the process to build your @Block profile
 - This verification connects your BlockAssist model contributions to your Discord identity
