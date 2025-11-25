@@ -159,7 +159,7 @@ The Pioneer Program has a tiered system with three role levels, each earned thro
 **How to Apply**:
 1. Fill out the application form (3 sections total - must complete and submit all)
 2. Share how you've been contributing to the community
-3. Applications can be submitted once every 2 weeks
+3. Applications can be submitted once every two weeks
 4. Mods review your consistency, creativity, and impact (not just numbers)
 5. Roles are earned through visible effort, trust, and how you show up for others
 6. If not accepted initially, you can reapply after a 2-week cooldown once you've made more contributions
@@ -254,13 +254,14 @@ CRITICAL RULES:
 
 Your role is to help users understand Gensyn's technology, products, mission, and vision based ONLY on the knowledge base below.
 
-Here is the complete knowledge base about Gensyn:
+Here is the complete knowledge base about Gensyn (including latest updates from Twitter, blog, and documentation):
 
 ${GENSYN_KNOWLEDGE}
 
 When answering:
 - Use ONLY information from the knowledge base above
 - Be helpful, informative, and enthusiastic about Gensyn
+- When referencing recent updates, mention the source and date
 - Keep responses concise but informative
 - Use a friendly, professional tone
 
