@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageCircle, X, Send, Loader2, Sparkles } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import type { ChatMessage } from "@shared/schema";
 
 export function ChatWidget() {
@@ -15,6 +16,7 @@ export function ChatWidget() {
   const [input, setInput] = useState("");
   const [sessionId] = useState(() => `session-${Date.now()}-${Math.random()}`);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   const suggestedQuestions = [
     "What is Gensyn?",
@@ -53,6 +55,30 @@ export function ChatWidget() {
           timestamp: Date.now(),
         },
       ]);
+    },
+    onError: (error: any) => {
+      console.error("Chat error:", error);
+      let errorMessage = "Failed to send message. Please try again.";
+      let errorDetails = "";
+      
+      try {
+        // Try to parse the error response
+        const errorText = error.message || String(error);
+        const match = errorText.match(/500: (.+)/);
+        if (match) {
+          const errorData = JSON.parse(match[1]);
+          errorMessage = errorData.error || errorMessage;
+          errorDetails = errorData.details || errorData.hint || "";
+        }
+      } catch (e) {
+        // Use default error message
+      }
+
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: errorDetails ? `${errorMessage}\n${errorDetails}` : errorMessage,
+      });
     },
   });
 

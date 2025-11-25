@@ -18,30 +18,56 @@ app.post("/api/chat", async (req, res) => {
     }
 
     // Get or create conversation
-    let conversation = await storage.getConversation(sessionId);
-    if (!conversation) {
-      conversation = await storage.createConversation({
-        sessionId,
-        messages: [],
-      });
+    let conversation;
+    try {
+      conversation = await storage.getConversation(sessionId);
+      if (!conversation) {
+        conversation = await storage.createConversation({
+          sessionId,
+          messages: [],
+        });
+      }
+    } catch (storageError) {
+      console.error("Storage error:", storageError);
+      // Continue without storage - we can still generate responses
+      conversation = { sessionId, messages: [] } as any;
     }
 
     // Generate AI response
-    const aiResponse = await generateChatResponse(message, history || []);
+    let aiResponse;
+    try {
+      aiResponse = await generateChatResponse(message, history || []);
+    } catch (groqError: any) {
+      console.error("Groq API error:", groqError);
+      return res.status(500).json({ 
+        error: "Failed to generate AI response",
+        details: groqError?.message || "Unknown error",
+        hint: "Please verify GROQ_API_KEY is valid and has credits"
+      });
+    }
 
     // Update conversation with new messages
-    const updatedMessages = [
-      ...(Array.isArray(conversation.messages) ? conversation.messages : []),
-      { role: "user", content: message, timestamp: Date.now() },
-      { role: "assistant", content: aiResponse, timestamp: Date.now() },
-    ];
-    
-    await storage.updateConversation(sessionId, updatedMessages);
+    try {
+      if (conversation.id) {
+        const updatedMessages = [
+          ...(Array.isArray(conversation.messages) ? conversation.messages : []),
+          { role: "user", content: message, timestamp: Date.now() },
+          { role: "assistant", content: aiResponse, timestamp: Date.now() },
+        ];
+        await storage.updateConversation(sessionId, updatedMessages);
+      }
+    } catch (updateError) {
+      console.error("Update conversation error:", updateError);
+      // Don't fail the request if we can't update storage
+    }
 
     res.json({ message: aiResponse });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Chat error:", error);
-    res.status(500).json({ error: "Failed to process chat message" });
+    res.status(500).json({ 
+      error: "Failed to process chat message",
+      details: error?.message || "Unknown error"
+    });
   }
 });
 
