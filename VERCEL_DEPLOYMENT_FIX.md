@@ -8,7 +8,7 @@ This happened because Vercel's serverless functions couldn't find the TypeScript
 ## Solution Implemented
 
 ### 1. **Bundled API Function**
-- **Source file**: `api/handler.ts` (the original TypeScript source)
+- **Source file**: `api/index.ts` (the original TypeScript source)
 - **Bundled output**: `api/index.js` (compiled JavaScript with all dependencies)
 - The build process uses `esbuild` to bundle all dependencies into a single file
 
@@ -71,11 +71,11 @@ To set up local environment variables in Replit:
 ## What Changed
 
 ### Files Modified:
-1. **`api/index.ts`** → Renamed to **`api/handler.ts`** (source file)
+1. **`api/index.ts`** → Main API serverless function (source file)
 2. **`server/db.ts`** → Added lazy initialization
 3. **`package.json`** → Updated `build:vercel` script to bundle the API
 4. **`.gitignore`** → Added `api/index.js` (generated file)
-5. **`vercel.json`** → No changes needed (already configured correctly)
+5. **`vercel.json`** → Configured to route API calls to `/api/index`
 
 ### Files Generated:
 - **`api/index.js`** → Bundled API function (40.5kb, includes all dependencies)
