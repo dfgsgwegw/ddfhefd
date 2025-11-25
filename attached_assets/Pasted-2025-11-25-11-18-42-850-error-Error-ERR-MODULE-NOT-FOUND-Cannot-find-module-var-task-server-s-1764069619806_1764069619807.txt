@@ -1,0 +1,40 @@
+2025-11-25 11:18:42.850 [error] Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/var/task/server/storage' imported from /var/task/api/index.js
+    at finalizeResolution (node:internal/modules/esm/resolve:280:11)
+    at moduleResolve (node:internal/modules/esm/resolve:865:10)
+    at moduleResolveWithNodePath (node:internal/modules/esm/resolve:989:14)
+    at defaultResolve (node:internal/modules/esm/resolve:1032:79)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+    at ModuleJob._link (node:internal/modules/esm/module_job:183:49)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///var/task/server/storage'
+}
+Node.js process exited with exit status: 1. The logs above can help with debugging the issue. 2025-11-25 11:18:36.809 [error] Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/var/task/server/storage' imported from /var/task/api/index.js
+    at finalizeResolution (node:internal/modules/esm/resolve:280:11)
+    at moduleResolve (node:internal/modules/esm/resolve:865:10)
+    at moduleResolveWithNodePath (node:internal/modules/esm/resolve:989:14)
+    at defaultResolve (node:internal/modules/esm/resolve:1032:79)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+    at ModuleJob._link (node:internal/modules/esm/module_job:183:49)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///var/task/server/storage'
+}
+Node.js process exited with exit status: 1. The logs above can help with debugging the issue.2025-11-25 11:18:43.062 [error] Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/var/task/server/storage' imported from /var/task/api/index.js
+    at finalizeResolution (node:internal/modules/esm/resolve:280:11)
+    at moduleResolve (node:internal/modules/esm/resolve:865:10)
+    at moduleResolveWithNodePath (node:internal/modules/esm/resolve:989:14)
+    at defaultResolve (node:internal/modules/esm/resolve:1032:79)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:731:20)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:708:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:310:38)
+    at ModuleJob._link (node:internal/modules/esm/module_job:183:49)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///var/task/server/storage'
+}
+Node.js process exited with exit status: 1. The logs above can help with debugging the issue.
