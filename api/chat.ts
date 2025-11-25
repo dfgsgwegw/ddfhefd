@@ -1,6 +1,41 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { storage } from '../server/storage';
-import { generateChatResponse } from '../server/groq';
+import Groq from 'groq-sdk';
+
+// Simple in-memory storage for serverless
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: number;
+}
+
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || "" });
+
+async function generateResponse(message: string, history: ChatMessage[]): Promise<string> {
+  const messages: any[] = [
+    {
+      role: "system",
+      content: `You are a helpful AI assistant for Gensyn, a decentralized machine learning compute protocol. 
+      
+Gensyn connects ML-capable hardware globally and makes it accessible at fair market prices. Key products include:
+- Verde Runtime: Cryptographically verifiable runtime for RL workloads
+- RL Swarm: Collaborative RL framework (live on testnet)
+- Testnet: Open platform for community testing
+
+Be helpful, accurate, and concise in your responses.`
+    },
+    ...history.map(msg => ({ role: msg.role, content: msg.content })),
+    { role: "user", content: message }
+  ];
+
+  const response = await groq.chat.completions.create({
+    model: "llama-3.3-70b-versatile",
+    messages,
+    temperature: 0.7,
+    max_tokens: 1024,
+  });
+
+  return response.choices[0]?.message?.content || "I'm sorry, I couldn't generate a response.";
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Only allow POST
@@ -18,62 +53,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { message, sessionId, history } = req.body;
+    const { message, history = [] } = req.body;
 
     if (!message || typeof message !== "string") {
       return res.status(400).json({ error: "Message is required" });
     }
 
-    // Get or create conversation
-    let conversation;
-    try {
-      conversation = await storage.getConversation(sessionId);
-      if (!conversation) {
-        conversation = await storage.createConversation({
-          sessionId,
-          messages: [],
-        });
-      }
-    } catch (storageError) {
-      console.error("Storage error:", storageError);
-      // Continue without storage - we can still generate responses
-      conversation = { sessionId, messages: [] } as any;
-    }
-
     // Generate AI response
-    let aiResponse;
-    try {
-      aiResponse = await generateChatResponse(message, history || []);
-    } catch (groqError: any) {
-      console.error("Groq API error:", groqError);
-      return res.status(500).json({ 
-        error: "Failed to generate AI response",
-        details: groqError?.message || "Unknown error",
-        hint: "Please verify GROQ_API_KEY is valid and has credits"
-      });
-    }
+    const aiResponse = await generateResponse(message, history);
 
-    // Update conversation with new messages
-    try {
-      if (conversation.id) {
-        const updatedMessages = [
-          ...(Array.isArray(conversation.messages) ? conversation.messages : []),
-          { role: "user", content: message, timestamp: Date.now() },
-          { role: "assistant", content: aiResponse, timestamp: Date.now() },
-        ];
-        await storage.updateConversation(sessionId, updatedMessages);
-      }
-    } catch (updateError) {
-      console.error("Update conversation error:", updateError);
-      // Don't fail the request if we can't update storage
-    }
-
-    res.json({ message: aiResponse });
+    return res.status(200).json({ message: aiResponse });
   } catch (error: any) {
     console.error("Chat error:", error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: "Failed to process chat message",
-      details: error?.message || "Unknown error"
+      details: error?.message || "Unknown error",
+      hint: error?.message?.includes('API key') ? 'Please verify GROQ_API_KEY is valid and has credits' : undefined
     });
   }
 }
